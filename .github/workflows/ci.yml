@@ -3,9 +3,15 @@ name: hapifyMe Automated Tests
 # Declanșator: Când facem push pe branch-ul 'main' sau deschidem un Pull Request
 on:
   push:
-    branches: [ "master" ] # La fiecare push pe main
+    branches: [ "main" ] # La fiecare push pe main
   pull_request:
-    branches: [ "master" ] # La fiecare Pull Request
+    branches: [ "main" ] # La fiecare Pull Request
+
+permissions:
+  contents: write  # NECESAR pentru a putea publica raportul pe gh-pages
+  pages: write
+  id-token: write
+
 
 jobs:
   test-api:
@@ -26,7 +32,8 @@ jobs:
 
       # 3. Rulăm testele folosind Maven (Profile-ul pentru HapifyMe)
       - name: Run Tests with Maven
-        run: mvn test -Dapi.token=${{ secrets.HAPIFYME_API_TOKEN }}
+        run: mvn clean test -Dapi.token=${{ secrets.HAPIFYME_API_TOKEN }}
+        continue-on-error: true #Continua execuția chiar dacă testele au picat, pentru a genera raportul Allure
 
       # 4. Configurarea Artefactelor (Raportul de Testare)
       # Salvăm folderul surefire-reports pentru a putea vedea ce teste au picat
@@ -52,3 +59,23 @@ jobs:
         with:
           name: allure-report
           path: allure-report
+
+      # Pasul 6: Generează Istoricul Allure
+      - name: Allure Report History
+        uses: simple-elf/allure-report-action@master
+        if: always()
+        id: allure-report
+        with:
+          allure_results: target/allure-results
+          gh_pages: gh-pages
+          allure_report: allure-report
+          allure_history: allure-history
+
+      # Pasul 7: Publică Raportul pe GitHub Pages
+      - name: Deploy Report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
