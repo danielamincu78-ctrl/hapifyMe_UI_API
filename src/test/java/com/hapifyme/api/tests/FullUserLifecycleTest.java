@@ -4,6 +4,8 @@ import com.hapifyme.api.models.*;
 import com.hapifyme.api.utils.ApiPoller;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.testng.annotations.Test;
 
 import static io.restassured.RestAssured.given;
@@ -11,12 +13,15 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 public class FullUserLifecycleTest {
+    private static final Logger logger =
+            LogManager.getLogger(FullUserLifecycleTest.class);
+
     @Test
     public void testFullUserLifecycle() {
         String baseUri = "https://apps.qualiadept.eu/hapifyme/api";
 
         // --- ETAPA 1: REGISTER (Obținem API Key și User ID) ---
-        System.out.println("Incepe ETAPA 1: Create (Înregistrare) ");
+        logger.info("===== ETAPA 1: Inresgistrare USER =====");
 
         String uniqueEmail = "chain_" + System.currentTimeMillis() + "@hapifyme.com";
         String password = "Pass1234@";
@@ -38,7 +43,8 @@ public class FullUserLifecycleTest {
 
         String extractedApiKey = registerResponse.getApiKey();
         int extractedUserId = Integer.parseInt(registerResponse.getUserId());
-        System.out.println("User creat cu ID: " + registerResponse.getUserId());
+
+        logger.info("User creat cu ID: {}", registerResponse.getUserId());
         String extractedUsername = registerResponse.getUsername();
 
         // Pregătire date (emailul utilizatorului înregistrat)
@@ -49,12 +55,15 @@ public class FullUserLifecycleTest {
         String statusUrl = "https://apps.qualiadept.eu/hapifyme/api/user/retrieve_token.php?username_or_email=" + userEmail;
         ApiPoller.pollForStatus(statusUrl, "success", apiKey);
 
-        System.out.println("Register Done. API Key: " + extractedApiKey + " . Username is: " + extractedUsername);
-        System.out.println("Final ETAPA 1");
-        System.out.println(" ");
+        logger.info("Register finalizat. Username: {}", extractedUsername);
+        logger.debug("API Key: {}", extractedApiKey);
+        logger.info("Final ETAPA 1");
+        logger.info("====================  ");
+        logger.info("");
 
-        System.out.println("Incepe ETAPA 2: confirmare email");
-        System.out.println("●\tConfirm (Activare Cont)");
+        logger.info("===== ETAPA 2: confirmare email =====  ");
+        logger.info("Activare Cont");
+        logger.info("");
 
         // --- ETAPA 2: Confirm email (folosim token-ul utilizatorului) ---
         String extractedToken = registerResponse.getToken();
@@ -70,13 +79,16 @@ public class FullUserLifecycleTest {
                 .statusCode(200)
                 .body("status", equalTo("success"))
                 .body("message", containsString("Email confirmed successfully. You can now log in"));
-        System.out.println("2. Email confirmed successfully.");
-        System.out.println("Final ETAPA 2");
-        System.out.println(" ");
+        logger.info("Email confirmat cu succes");
+        logger.info("Final ETAPA 2");
+        logger.info("====================  ");
+        logger.info("");
 
         // Etapa 3. Login ( extrage Bearer Token)
-        System.out.println("Incepe ETAPA 3: login");
-        System.out.println("●\tLogin (Obținerea Bearer Token)");
+        logger.info("===== ETAPA 3: login ===== ");
+        logger.info("Obtinerea Bearer Token");
+        logger.info("");
+
         LoginRequest loginBody = new LoginRequest(extractedUsername, password); // SAU folosim username din registerResponse
 
         LoginResponse loginResponse = given()
@@ -91,13 +103,16 @@ public class FullUserLifecycleTest {
                 .extract().as(LoginResponse.class);
 
         String bearerToken = loginResponse.getToken();
-        System.out.println("3. Login Done. Bearer Token: " + bearerToken);
-        System.out.println("Final ETAPA 3");
-        System.out.println(" ");
+        logger.info("Bearer Token: {}", bearerToken);
+        logger.info("Final ETAPA 3");
+        logger.info("====================  ");
+        logger.info("");
 
         //4.Get profile (Verificare profil: datele de la autentificarecorespund cu cele din profil)
-        System.out.println("Incepe ETAPA 4: get profile");
-        System.out.println("●\tRead & Validate (Verificare Profil)");
+        logger.info("===== ETAPA 4: get profile =====");
+        logger.info("Verificare Profil");
+        logger.info("");
+
         ProfileResponse profileResponse = given()
                 .baseUri(baseUri)
                 .header("Authorization", extractedApiKey) // Folosim API Key
@@ -109,7 +124,7 @@ public class FullUserLifecycleTest {
                 .then()
                 .statusCode(200)
                 .extract().as(ProfileResponse.class);
-        System.out.println("Profile response: " + profileResponse);
+        logger.info("Profile response: {}", profileResponse);
 
         // Verificare profil: datele de la autentificare(email, nume)  corespund cu cele din profil
 
@@ -118,19 +133,21 @@ public class FullUserLifecycleTest {
                 !profileResponse.getUser().getLastName().equals(lastName)) {
             throw new RuntimeException("Email mismatch");
         } else {
-            System.out.println("Email User inregistrat: " + uniqueEmail);
-            System.out.println("Nume User inregistrat: " + firstName + " " + lastName);
-            System.out.println("Email user din profil: " + profileResponse.getUser().getEmail());
-            System.out.println("Nume user din profil: " + profileResponse.getUser().getFirstName() + " " + profileResponse.getUser().getLastName());
+            logger.info("Email User inregistrat: ", uniqueEmail);
+            logger.info("Nume User inregistrat: ", firstName + " " + lastName);
+            logger.info(" ");
+            logger.info("Email user din profil: ",profileResponse.getUser().getEmail());
+            logger.info("Nume user din profil: ",profileResponse.getUser().getFirstName() + " " + profileResponse.getUser().getLastName() );
         }
-
-        System.out.println("4. Done. Nume si email din profil sunt identice cu cele de la inregistrare.");
-        System.out.println("Final ETAPA 4");
-        System.out.println(" ");
+        logger.info("4. Done. Nume si email din profil sunt identice cu cele de la inregistrare.");
+        logger.info("Final ETAPA 4");
+        logger.info("");
 
         //5. Update profile
-        System.out.println("Incepe ETAPA 5: update profile");
-        System.out.println("●\tUpdate Profile (Modificare Profil)");
+        logger.info("===== ETAPA 5: update profile =====");
+        logger.info("Modificare Profil");
+        logger.info("====================");
+
         UpdateProfileRequest updateBody = new UpdateProfileRequest(extractedUserId, "UpdatedName",
                 profileResponse.getUser().getLastName(), profileResponse.getUser().getEmail(),
                 profileResponse.getUser().getProfilePic());
@@ -147,13 +164,15 @@ public class FullUserLifecycleTest {
                 .statusCode(200)
                 .body("status", equalTo("success"))
                 .body("message", containsString("updated"));
-        System.out.println("5. Done. Profile updated.");
-        System.out.println("Final ETAPA 5");
-        System.out.println(" ");
+        logger.info("5. Done. Profile updated.");
+        logger.info("Final ETAPA 5");
+        logger.info("====================");
 
         // 6: DELETE PROFILE (Cleanup - Folosind Bearer Token) ---
-        System.out.println("Incepe ETAPA 6: delete profile");
-        System.out.println("●\tDelete Profile (Stergere Profil)");
+        logger.info("===== ETAPA 6: delete profile =====");
+        logger.info("Stergere Profil");
+        logger.info("");
+
         given()
                 .baseUri(baseUri)
                 .header("Authorization", "Bearer " + bearerToken) // Folosim Bearer Token
@@ -166,8 +185,8 @@ public class FullUserLifecycleTest {
                 .body("status", equalTo("success"))
                 .body("message", containsString("deleted"));
 
-        System.out.println("6. Delete Done. User cleaned up.");
-        System.out.println(" ");
+        logger.info("Delete Done. User cleaned up");
+        logger.info("====================");
 
         //Negative Check: Încearcă să citești profilul din nou (GET) și validează că primești 404 sau 401 (utilizatorul nu mai există).
         Response extractedResponse = given()
@@ -183,12 +202,11 @@ public class FullUserLifecycleTest {
                 .body("status", equalTo("error"))
                 .body("message", containsString("User not found."))
                 .extract().response();
-        System.out.println("Status: " + extractedResponse.statusCode());
-        System.out.println("Response: " + extractedResponse.getBody().asString());
-        System.out.println("7. Negative Check Done. User not found.");
-        System.out.println("Final ETAPA 7");
-        System.out.println(" ");
-
+        logger.info("Status: ", extractedResponse.statusCode() );
+        logger.info("Response: ",extractedResponse.getBody().asString() );
+        logger.info("Negative Check Done. User not found.");
+        logger.info("Final ETAPA 6");
+        logger.info("====================");
     }
 }
 
