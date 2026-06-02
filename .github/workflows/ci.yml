@@ -1,0 +1,54 @@
+name: hapifyMe Automated Tests
+
+# Declanșator: Când facem push pe branch-ul 'main' sau deschidem un Pull Request
+on:
+  push:
+    branches: [ "master" ] # La fiecare push pe main
+  pull_request:
+    branches: [ "master" ] # La fiecare Pull Request
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest # Folosim o mașină virtuală Linux oferită de GitHub
+
+    steps:
+      # 1. Descărcăm codul din repository (v4)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Configurăm mediul Java (JDK 21) (v4)
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven' # Cache la dependențe pentru viteză
+
+      # 3. Rulăm testele folosind Maven (Profile-ul pentru HapifyMe)
+      - name: Run Tests with Maven
+        run: mvn test -Dapi.token=${{ secrets.HAPIFYME_API_TOKEN }}
+
+      # 4. Configurarea Artefactelor (Raportul de Testare)
+      # Salvăm folderul surefire-reports pentru a putea vedea ce teste au picat
+      # ATENȚIE: Folosim v4 deoarece v3 este depreciat
+      - name: Upload Test Report
+        if: always() # Rulează pasul chiar dacă testele au picat
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: target/surefire-reports/
+
+      #5. Generare raport Allure si publicarea raportului pe GitHub Pages
+      - name: Generate Allure Report
+        uses: simple-elf/allure-report-action@master
+        if: always()
+        with:
+          allure_results: target/allure-results
+          allure_report: allure-report
+
+      - name: Upload Allure Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-report
+          path: allure-report
