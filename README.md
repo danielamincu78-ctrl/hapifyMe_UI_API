@@ -1,4 +1,4 @@
-[![hapifyMe Automated Tests](https://github.com/danielamincu78-ctrl/hapifyMe_UI_API/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/danielamincu78-ctrl/hapifyMe_UI_API/actions/workflows/ci.yml)
+# [![hapifyMe Automated Tests](https://github.com/danielamincu78-ctrl/hapifyMe_UI_API/actions/workflows/main.yml/badge.svg)](https://github.com/danielamincu78-ctrl/hapifyMe_UI_API/actions/workflows/main.yml)
 
 # HapifyMe Automation Framework
 
